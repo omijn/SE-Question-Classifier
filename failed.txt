@@ -1,0 +1,4 @@
+https://stackapps.com/questions/7498/remove-image-description-text
+https://stackapps.com/questions/4942/stackoverflow-call-returning-some-zipped-data-when-i-call-from-server-side
+https://stackapps.com/questions/7617/trickleedit-queuing-edits-to-prevent-flooding-placeholder
+https://stackapps.com/questions/7620/stackoverflow-clientplaceholder
