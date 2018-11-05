@@ -39,7 +39,7 @@ def main():
     completed_sites = qcompleted["completed_sites"]
 
     for sitename, siteqmetadata in qmeta.items():
-        if sitename in completed_sites or sitename.endswith(".meta"):
+        if sitename in completed_sites or sitename.endswith(".meta") or sitename.startswith("meta"):
             continue
 
         try:
@@ -84,7 +84,7 @@ def main():
             qcompleted[sitename].append(qid)
             completed_fp.seek(0)
             json.dump(qcompleted, completed_fp)
-            time.sleep(0.8)
+            time.sleep(0.7)
         qcompleted["completed_sites"].append(sitename)
         completed_fp.seek(0)
         json.dump(qcompleted, completed_fp)
