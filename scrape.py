@@ -16,19 +16,12 @@ def scrape(html):
 
 def main():
     metadata_fp = open("qmeta.json")
-    questions_fp = open("qdata.json", "r+")
     completed_fp = open("completed_questions.json", "r+")
     failed_fp = open("failed.txt", "a")
 
     # load question metadata (file with question id, link, title and tag)
     qmeta = json.load(metadata_fp)
     metadata_fp.close()
-
-    # load file that stores the actual question text
-    try:
-        qdata = json.load(questions_fp)
-    except json.decoder.JSONDecodeError:  # if file is empty
-        qdata = {}
 
     # load file that saves progress of questions scraped so far
     try:
@@ -38,14 +31,38 @@ def main():
 
     completed_sites = qcompleted["completed_sites"]
 
+
     for sitename, siteqmetadata in qmeta.items():
         if sitename in completed_sites or sitename.endswith(".meta") or sitename.startswith("meta"):
             continue
+
+        # load file that stores the actual question text
+        try:
+            num_completed_sites = len(qcompleted["completed_sites"])
+            if num_completed_sites <= 72:
+                filenum = ""
+            elif num_completed_sites <= 100:
+                filenum = 1
+            elif num_completed_sites <= 130:
+                filenum = 2
+            elif num_completed_sites <= 160:
+                filenum = 3
+            else:
+                filenum = 4
+
+            questions_filename = "qdata" + str(filenum) + ".json"
+
+            questions_fp = open(questions_filename, "r+")
+            qdata = json.load(questions_fp)
+        except json.decoder.JSONDecodeError:  # if file is empty
+            qdata = {}
 
         try:
             qcompleted[sitename]
         except KeyError:
             qcompleted[sitename] = []
+
+        print("Writing to " + questions_filename)
 
         completed_questions_for_this_site = qcompleted[sitename]
         failcount = 0
@@ -84,12 +101,12 @@ def main():
             qcompleted[sitename].append(qid)
             completed_fp.seek(0)
             json.dump(qcompleted, completed_fp)
-            time.sleep(0.7)
+            time.sleep(0.35)
         qcompleted["completed_sites"].append(sitename)
         completed_fp.seek(0)
         json.dump(qcompleted, completed_fp)
+        questions_fp.close()
 
-    questions_fp.close()
     completed_fp.close()
 
 
