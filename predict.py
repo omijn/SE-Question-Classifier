@@ -1,4 +1,8 @@
+""" Interactively make predictions using the classifier built in train.py """
+
+
 import pickle
+from sklearn.externals import joblib
 from train import Preprocessor
 
 
@@ -16,7 +20,7 @@ class PredictionClient:
 
 
 def main():
-    clf = pickle.load(open("classifier.sav", "rb"))
+    clf = joblib.load("classifier.sav")
     pp = pickle.load(open("preprocessor.sav", "rb"))
     pc = PredictionClient(clf, pp)
 

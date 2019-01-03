@@ -1,3 +1,5 @@
+""" Train a classifer on the question data obtained from scrape.py """
+
 import json
 import pickle
 import random
@@ -8,6 +10,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.externals import joblib
 
 
 class DataManager:
@@ -128,7 +131,7 @@ def main():
     clf.fit(X_train, y_train)
 
     # save model
-    pickle.dump(clf, open("classifier.sav", "wb"))
+    joblib.dump(clf, "classifier.sav")
     pickle.dump(pp, open("preprocessor.sav", "wb"))
     # pp.save()
 
