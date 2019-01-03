@@ -1,5 +1,8 @@
+""" Use Stack Exchange APIs to obtain metadata about top questions on Stack Exchange sites and store it in a file.
+    See main() for more documentation.
+"""
+
 import requests
-from bs4 import BeautifulSoup
 import argparse
 import json
 import time
@@ -44,7 +47,8 @@ class SEApiClient:
 
     @classmethod
     def questions_api(cls, site_source, tag_source, question_limit, questions_metafile):
-        # TODO: do something if file doesn't exist
+        # TODO: create file if it doesn't exist
+
         completed_sites_file = open("completed_sites", "r+")
         completed_sites = completed_sites_file.read().split("\n")
         try:
@@ -131,24 +135,30 @@ class SEApiClient:
 
                 completed_sites_file.write(site + "\n")
 
-            qdata
-
 
 def main():
+    """ Normal usage: python getqmeta.py --sites-api --so sites.json --tags-api --to tags.json --questions-api --qf qmeta.json
+
+        If you already have a sites file and tags file (say, from a previous run of the program), you can read from those files from disk instead of using the API:
+        python getqmeta.py --si sites.json --ti tags.json --qa --qf qmeta.json
+
+        If you already have a question metadata file, there is no need to run this program.
+    """
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sites-api", "--sa", action="store_true")
-    parser.add_argument("--sites-outfile", "--so")
-    parser.add_argument("--sites-infile", "--si")
+    parser.add_argument("--sites-api", "--sa", action="store_true")     # call "sites" api and store result in --sites-outfile
+    parser.add_argument("--sites-outfile", "--so")          # needs to be set if --sites-api is set
+    parser.add_argument("--sites-infile", "--si")           # if this is set, --sites-api and --sites-outfile should NOT be set
 
-    parser.add_argument("--tags-api", "--ta", action="store_true")
-    parser.add_argument("--tags-outfile", "--to")
-    parser.add_argument("--tags-infile", "--ti")
+    parser.add_argument("--tags-api", "--ta", action="store_true")      # call "tags" api and store result in --tags-outfile
+    parser.add_argument("--tags-outfile", "--to")           # needs to be set if --tags-api is set
+    parser.add_argument("--tags-infile", "--ti")            # if this is set, --tags-api and --tags-outfile should NOT be set
 
-    parser.add_argument("--questions-api", "--qa", action="store_true")
-    parser.add_argument("--questions-metafile", "--qf")
+    parser.add_argument("--questions-api", "--qa", action="store_true")     # call "questions" api and store result in --questions-metafile
+    parser.add_argument("--questions-metafile", "--qf")     # needs to be set if --questions-api is set
 
-    parser.add_argument("--tagcount", "-c", type=int, default=70)
-    parser.add_argument("--questioncount", "-q", type=int, default=30)
+    parser.add_argument("--tagcount", "-c", type=int, default=70)       # number of tags to select per site
+    parser.add_argument("--questioncount", "-q", type=int, default=30)  # number of questions to select per tag
 
     args = parser.parse_args()
 
@@ -171,9 +181,9 @@ def main():
     if args.questions_api:
         SEApiClient.questions_api(site_source, tag_source, args.questioncount,
                                   args.questions_metafile)
-
-    with open(args.questions_metafile, "r") as f:
-        question_source = json.load(f)
+    # else:
+    #     with open(args.questions_metafile, "r") as f:
+    #         question_source = json.load(f)
 
 
 if __name__ == '__main__':

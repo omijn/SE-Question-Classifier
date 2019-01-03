@@ -1,4 +1,5 @@
 import json
+import pickle
 import random
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
@@ -69,18 +70,9 @@ class Preprocessor:
     def vectorize_transform_text(self, textdata):
         return self.tfidf.transform(textdata)
 
-
-class PredictionClient:
-
-    def __init__(self, clf, preprocessor):
-        self.clf = clf
-        self.pp = preprocessor
-
-    def get_user_input(self):
-        return input("Enter a question to be classified: ")
-
-    def predict(self, text):
-        return self.pp.decode_labels(self.clf.predict(self.pp.vectorize_transform_text([text])))[0]
+    # def save(self):
+    #     np.save('labelencoder_classes.npy', self.le.classes_)
+    #     pickle.dump(self.tfidf, open("tfidf.sav", "wb"))
 
 
 def baseline(distinct_labels, pp, X, y):
@@ -134,6 +126,12 @@ def main():
 
     clf = MultinomialNB()
     clf.fit(X_train, y_train)
+
+    # save model
+    pickle.dump(clf, open("classifier.sav", "wb"))
+    pickle.dump(pp, open("preprocessor.sav", "wb"))
+    # pp.save()
+
     # y_pred_val = clf.predict(X_val)
     y_pred_test = clf.predict(X_test)
     y_pred_all_data = clf.predict(X)
@@ -147,18 +145,6 @@ def main():
 
     print("Test set result")
     print(classification_report(y_test, y_pred_test, target_names=flat_labels))
-
-    
-
-    pc = PredictionClient(clf, pp)
-
-    question = ""
-    while question != "quit":
-        question = pc.get_user_input()
-        if str.lower(question) == "quit":
-            break
-        print("Your question most likely belongs on the \"" + pc.predict(question) + "\" StackExchange site.\n")
-    pass
 
 
 if __name__ == '__main__':
