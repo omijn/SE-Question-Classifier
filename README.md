@@ -1,5 +1,6 @@
 # SE-Question-Classifier
 
-Classify which website a question belongs to on the Stack Exchange network
+Predict, using machine learning, which website a question belongs to on the Stack Exchange network.
 
+![example](images/example.png)
 
