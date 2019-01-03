@@ -11,11 +11,13 @@ from sklearn.feature_extraction.text import CountVectorizer
 
 class DataManager:
 
-    def __init__(self, category_size=100):
+    def __init__(self, category_size=100, num_files=6):
         self.category_size = category_size
+        self.num_files = num_files
+        self.data = []
 
     def read_data(self):
-        file_handles = [open("qdata" + str(f) + ".json") for f in range(5)]
+        file_handles = [open("qdata" + str(f) + ".json") for f in range(1, self.num_files + 1)]
         self.data = [json.load(f) for f in file_handles]
         self.data[0].pop('meta.superuser')
         self.data[0].pop('meta.serverfault')
@@ -98,44 +100,33 @@ def baseline(distinct_labels, pp, X, y):
     print("Baseline classifier F1 score over entire dataset = {}".format(f1_score(y, y_pred, average='micro')))
 
 
-def create_json(X, y):
-    print(type(X))
-    print(type(y))
-    d = {
-        "description": [
-            "Body of questions posted on Stack Exchange websites, labelled as the name of the website they were posted on"],
-        "authors": {
-            "author1": "Abhijit Kashyap"
-        },
-        "emails": {
-            "email1": "abhijitk@usc.edu"
-        }
-    }
-
-    d['corpus'] = [{"label": int(example[1]), "data": example[0]} for example in zip(X, y)]
-    f = open("final.json", "w")
-    json.dump(d, f)
-
-
 def main():
-    dm = DataManager(500)
+    dm = DataManager(category_size=500, num_files=5)
     pp = Preprocessor()
     data = dm.read_data()
-    # selected_sites = [['stackoverflow', 'apple'], ['sports', 'politics'], ['astronomy', 'aviation'], ['mythology', 'lifehacks'], ['literature', 'vegetarianism']]
-    selected_sites = dm.get_all_keys(data)
-    # selected_sites = dm.get_random_keys(10, data)
 
+    # get sites in the form [<list of sites from qdata1.json>, <list of sites from qdata2.json>, ...]
+    selected_sites = dm.get_all_keys(data)
+
+    # from list of lists, create a flat list of the form: ["site1", "site2", "site3", ...]
     flat_labels = dm.flatten(selected_sites)
+
+    # create mapping from string labels (site names) to numeric labels
     pp.fit_labelencoder(flat_labels)
+
+    # transform string labels into numeric labels using the mapping just created
     encoded_labels = pp.encode_labels(flat_labels)
 
+    # for each site, get "dm.category_size" number of questions
     sample = dm.get_sample(data, selected_sites)
+
+    # create dataset
     X, y = dm.create_dataset(sample, encoded_labels)
 
-    create_json(X, y)
+    # the data is now ready for use
+    ### INSERT MACHINE LEARNING HERE
 
-    # baseline(flat_labels, pp, X, y)
-
+    # apply tf-idf vectorization on the text
     X = pp.vectorize_fit_transform_text(X)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -155,7 +146,9 @@ def main():
     # print(classification_report(y_val, y_pred_val, target_names=dm.flatten(selected_sites)))
 
     print("Test set result")
-    print(classification_report(y_test, y_pred_test, target_names=dm.flatten(selected_sites)))
+    print(classification_report(y_test, y_pred_test, target_names=flat_labels))
+
+    
 
     pc = PredictionClient(clf, pp)
 
