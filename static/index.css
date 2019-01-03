@@ -1,0 +1,28 @@
+main {
+    color: #333333;
+}
+
+#question-input {
+    background-color: #dddddd;
+    border: none;
+}
+
+#predict-button {
+    background: #000;
+    color: #fff;
+    border: none;
+    -webkit-transition: background-color 0.2s;
+    -moz-transition: background-color 0.2s;
+    -ms-transition: background-color 0.2s;
+    -o-transition: background-color 0.2s;
+    transition: background-color 0.2s;
+}
+
+#predict-button:hover {
+    background-color: #369;
+}
+
+#predict-button:focus {
+    background-color: #369;
+    border: none;
+}

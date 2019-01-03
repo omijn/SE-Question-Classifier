@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stack Exchange Question Classifier</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+          integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="static/cover.css">
+    <link rel="stylesheet" href="static/index.css">
+
+
+</head>
+<body class="text-center">
+
+<div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+    <header class="masthead mb-auto">
+        <h1>Stack Exchange Question Classifier</h1>
+    </header>
+
+    <main role="main" class="inner cover">
+        <h4 class="cover-heading">Ask a question or type in a few keywords.</h4><br>
+        <div class="input-group">
+            <textarea class="form-control" id="question-input" aria-label="With textarea"></textarea>
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" id="predict-button">Predict!</button>
+            </div>
+        </div>
+        <br>
+        <p class="lead">Your question probably belongs on <span id="prediction"></span></p>
+        <img src="" class="img-fluid" id="prediction-logo">
+    </main>
+
+    <footer class="mastfoot mt-auto">
+        <div class="inner">
+            <p>Cover template for <a href="https://getbootstrap.com/">Bootstrap</a>, by <a
+                    href="https://twitter.com/mdo">@mdo</a>.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+        integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+        integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+        crossorigin="anonymous"></script>
+
+<script>
+    var question_input = $("#question-input")
+    question_input.focus()
+
+    function predict() {
+        let request = $.post({
+            url: "/predict",
+            data: JSON.stringify({
+                question: question_input.val()
+            }),
+            contentType: "application/json"
+        })
+
+        request.done(function (data) {
+            $("#prediction").html(data.name)
+            $("#prediction-logo").attr("src", data.logo)
+        })
+
+        question_input.focus()
+    }
+
+    function reset() {
+        if (question_input.val() === "") {
+            $("#prediction").html("")
+            $("#prediction-logo").attr("src", "")
+        }
+    }
+
+    question_input.keypress(function (e) {
+        let key = e.which;
+        if (key === 13)  // the enter key code
+        {
+            $("#predict-button").click();
+            return false;
+        }
+    });
+
+    $("#predict-button").click(predict)
+    setInterval(reset, 1000)
+
+</script>
+
+</body>
+</html>

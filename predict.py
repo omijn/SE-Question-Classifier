@@ -1,13 +1,10 @@
 """ Interactively make predictions using the classifier built in train.py """
 
-
-import pickle
 from sklearn.externals import joblib
-from train import Preprocessor
+from preprocess import Preprocessor
 
 
 class PredictionClient:
-
     def __init__(self, clf, preprocessor):
         self.clf = clf
         self.pp = preprocessor
@@ -21,7 +18,7 @@ class PredictionClient:
 
 def main():
     clf = joblib.load("classifier.sav")
-    pp = pickle.load(open("preprocessor.sav", "rb"))
+    pp = joblib.load("preprocessor.sav")
     pc = PredictionClient(clf, pp)
 
     question = ""
@@ -29,7 +26,7 @@ def main():
         question = pc.get_user_input()
         if str.lower(question) == "quit":
             break
-        print("Your question most likely belongs on the \"" + pc.predict(question) + "\" StackExchange site.\n")
+        print("Your question most likely belongs on the \"" + pc.predict(question) + "\" Stack Exchange site.\n")
 
 
 if __name__ == '__main__':
