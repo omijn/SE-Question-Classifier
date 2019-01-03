@@ -3,3 +3,4 @@ venv/
 sudopass
 pass
 command
+__pycache__/
