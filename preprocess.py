@@ -48,7 +48,7 @@ class DataManager:
 class Preprocessor:
     def __init__(self):
         self.le = LabelEncoder()
-        self.tfidf = TfidfVectorizer(stop_words='english')
+        self.tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1, 2))
 
     def fit_labelencoder(self, text_labels):
         self.le.fit(text_labels)

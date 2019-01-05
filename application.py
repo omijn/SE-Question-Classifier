@@ -21,8 +21,6 @@ def predict():
     data = request.get_json()
     question = data['question']
     prediction = pc.predict(question)
-    # logo = logos[prediction]
-    # url = urls[prediction]
     return jsonify(prediction=prediction,
                    name=site_metadata[prediction]["name"],
                    url=site_metadata[prediction]["site_url"],

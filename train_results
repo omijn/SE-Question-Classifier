@@ -1,0 +1,15 @@
+MultinomialNB
+F1 score (micro) on training set = 0.8784862863094548
+F1 score (micro) on validation set = 0.6986459900474482
+------------------------------
+
+MultinomialNB
+F1 score (micro) on training set = 0.8843690930833623
+F1 score (micro) on validation set = 0.703448674921884
+------------------------------
+
+MultinomialNB
+F1 score (micro) on training set = 0.8831539559464568
+F1 score (micro) on validation set = 0.7031593565559542
+------------------------------
+

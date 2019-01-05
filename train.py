@@ -7,6 +7,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.externals import joblib
+from sklearn.neural_network import MLPClassifier
+
 from preprocess import DataManager, Preprocessor
 
 
@@ -50,6 +52,10 @@ def main():
     # create dataset
     X, y = dm.create_dataset(sample, encoded_labels)
 
+    # Google says find the samples/word ratio to determine which model to use
+    # https://developers.google.com/machine-learning/guides/text-classification/step-2-5
+    # print("S/W ratio = " + str(np.median([len(question.split()) for question in X])))
+
     # the data is now ready for use
     ### INSERT MACHINE LEARNING HERE
 
@@ -57,29 +63,36 @@ def main():
     X = pp.vectorize_fit_transform_text(X)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-    # X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25)
 
     clf = MultinomialNB()
     clf.fit(X_train, y_train)
 
     # save model
-    joblib.dump(clf, "classifier.sav")
-    joblib.dump(pp, "preprocessor.sav")
+    # joblib.dump(clf, "classifier.sav")
+    # joblib.dump(pp, "preprocessor.sav")
     # pp.save()
 
-    # y_pred_val = clf.predict(X_val)
-    y_pred_test = clf.predict(X_test)
-    y_pred_all_data = clf.predict(X)
+    y_pred_train = clf.predict(X_train)
+    y_pred_val = clf.predict(X_val)
 
-    print("Main classifier accuracy over the entire dataset = {}".format(accuracy_score(y_pred_all_data, y)))
-    print("Main classifier F1 score over the entire dataset = {}".format(f1_score(y_pred_all_data, y, average='macro')))
-    print("Main classifier F1 score over the entire dataset = {}".format(f1_score(y_pred_all_data, y, average='micro')))
+    algorithm = clf.__class__.__name__
+    f1_train = f1_score(y_train, y_pred_train, average='micro')
+    f1_val = f1_score(y_val, y_pred_val, average='micro')
+
+    f1_train_msg = "F1 score (micro) on training set = {}".format(f1_train)
+    f1_val_msg = "F1 score (micro) on validation set = {}".format(f1_val)
+
+    print(f1_train_msg)
+    print(f1_val_msg)
+    with open("train_results", "a") as f:
+        f.write(algorithm + "\n")
+        f.write(f1_train_msg + "\n")
+        f.write(f1_val_msg + "\n")
+        f.write("------------------------------\n\n")
 
     # print("Validation set result")
     # print(classification_report(y_val, y_pred_val, target_names=dm.flatten(selected_sites)))
-
-    print("Test set result")
-    print(classification_report(y_test, y_pred_test, target_names=flat_labels))
 
 
 if __name__ == '__main__':
