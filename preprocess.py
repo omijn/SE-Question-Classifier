@@ -1,8 +1,10 @@
 import json
 import random
-
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
+
+np.random.seed(0)
 
 
 class DataManager:
@@ -27,7 +29,8 @@ class DataManager:
         return [d.keys() for d in data]
 
     def get_sample(self, data, site_lists):
-        return [[data[i][site][:self.category_size] for site in site_list] for i, site_list in enumerate(site_lists)]
+        return [[np.random.permutation(data[i][site])[:self.category_size] for site in site_list] for i, site_list in
+                enumerate(site_lists)]
 
     def flatten(self, lol):
         return [item for sublist in lol for item in sublist]
@@ -48,7 +51,8 @@ class DataManager:
 class Preprocessor:
     def __init__(self):
         self.le = LabelEncoder()
-        self.tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1, 2))
+        self.stopwords = ['the', 'a', 'in', 'of', 'that', 'which', 'what', 'or', 'and']
+        self.tfidf = TfidfVectorizer(stop_words='english', max_features=20000, ngram_range=(1, 2))
 
     def fit_labelencoder(self, text_labels):
         self.le.fit(text_labels)

@@ -4,3 +4,6 @@ sudopass
 pass
 command
 __pycache__/
+preprocessor.*.sav
+classifier.*.sav
+

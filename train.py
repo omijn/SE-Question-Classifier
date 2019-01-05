@@ -3,14 +3,15 @@
 import json
 import numpy as np
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.externals import joblib
 from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
 
 from preprocess import DataManager, Preprocessor
-
+import hashlib
 
 def baseline(distinct_labels, pp, X, y):
     # create a vocabulary for each label
@@ -62,34 +63,61 @@ def main():
     # apply tf-idf vectorization on the text
     X = pp.vectorize_fit_transform_text(X)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.88)
+    X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, train_size=0.5)
 
-    clf = MultinomialNB()
+    clf = MultinomialNB(alpha=0.4)
+    clf = SVC(gamma='auto')
+    clf = GridSearchCV(clf, {
+        'kernel': ['rbf', 'poly'],
+        'C': [0.01, 0.1, 1, 10, 100]
+    })
+
+    # clf = MLPClassifier()
     clf.fit(X_train, y_train)
-
-    # save model
-    # joblib.dump(clf, "classifier.sav")
-    # joblib.dump(pp, "preprocessor.sav")
-    # pp.save()
 
     y_pred_train = clf.predict(X_train)
     y_pred_val = clf.predict(X_val)
 
-    algorithm = clf.__class__.__name__
+    classifier_name = clf.__class__.__name__
+    classifier_params = "Classifier params: " + str(clf.get_params())
+    tfidf_params = "Tfidf params: " + str(pp.tfidf.get_params())
+    train_size = str(len(y_train))
+    val_size = str(len(y_val))
+
+    attempt_id = hashlib.sha256(bytes(classifier_name + classifier_params + tfidf_params + train_size, encoding='utf-8')).hexdigest()
+
+    # len(y_test)
     f1_train = f1_score(y_train, y_pred_train, average='micro')
     f1_val = f1_score(y_val, y_pred_val, average='micro')
+    # acc_train = accuracy_score(y_train, y_pred_train)
+    # acc_val = accuracy_score(y_val, y_pred_val)
 
     f1_train_msg = "F1 score (micro) on training set = {}".format(f1_train)
     f1_val_msg = "F1 score (micro) on validation set = {}".format(f1_val)
+    # acc_train_msg = "Accuracy on training set = {}".format(acc_train)
+    # acc_val_msg = "Accuracy on validation set = {}".format(acc_val)
 
     print(f1_train_msg)
     print(f1_val_msg)
+    print(clf.cv_results_)
+    print(clf.best_params_)
+    # print(acc_train_msg)
+    # print(acc_val_msg)
+
     with open("train_results", "a") as f:
-        f.write(algorithm + "\n")
+        f.write(attempt_id + "\n")
+        f.write(classifier_name + ": " + train_size + "/" + val_size + "\n")
+        f.write(classifier_params + "\n")
+        f.write(tfidf_params + "\n")
         f.write(f1_train_msg + "\n")
         f.write(f1_val_msg + "\n")
-        f.write("------------------------------\n\n")
+        # f.write(acc_train_msg + "\n")
+        # f.write(acc_val_msg + "\n")
+        f.write("----------------------------------------------\n\n")
+
+    joblib.dump(clf, "classifier." + attempt_id + ".sav")
+    joblib.dump(pp, "preprocessor." + attempt_id + ".sav")
 
     # print("Validation set result")
     # print(classification_report(y_val, y_pred_val, target_names=dm.flatten(selected_sites)))

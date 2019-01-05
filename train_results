@@ -1,15 +1,62 @@
-MultinomialNB
-F1 score (micro) on training set = 0.8784862863094548
-F1 score (micro) on validation set = 0.6986459900474482
-------------------------------
+MultinomialNB: 76040/5185
+Classifier params: {'alpha': 0.01, 'class_prior': None, 'fit_prior': True}
+Tfidf params: {'analyzer': 'word', 'binary': False, 'decode_error': 'strict', 'dtype': <class 'numpy.float64'>, 'encoding': 'utf-8', 'input': 'content', 'lowercase': True, 'max_df': 1.0, 'max_features': 20000, 'min_df': 1, 'ngram_range': (1, 2), 'norm': 'l2', 'preprocessor': None, 'smooth_idf': True, 'stop_words': 'english', 'strip_accents': None, 'sublinear_tf': False, 'token_pattern': '(?u)\\b\\w\\w+\\b', 'tokenizer': None, 'use_idf': True, 'vocabulary': None}
+F1 score (micro) on training set = 0.954497632824829
+F1 score (micro) on validation set = 0.6684667309546769
+----------------------------------------------
 
-MultinomialNB
-F1 score (micro) on training set = 0.8843690930833623
-F1 score (micro) on validation set = 0.703448674921884
-------------------------------
+MLPClassifier: 76040/5185
+Classifier params: {'activation': 'relu', 'alpha': 0.0001, 'batch_size': 'auto', 'beta_1': 0.9, 'beta_2': 0.999, 'early_stopping': False, 'epsilon': 1e-08, 'hidden_layer_sizes': (100,), 'learning_rate': 'constant', 'learning_rate_init': 0.001, 'max_iter': 200, 'momentum': 0.9, 'n_iter_no_change': 10, 'nesterovs_momentum': True, 'power_t': 0.5, 'random_state': None, 'shuffle': True, 'solver': 'adam', 'tol': 0.0001, 'validation_fraction': 0.1, 'verbose': False, 'warm_start': False}
+Tfidf params: {'analyzer': 'word', 'binary': False, 'decode_error': 'strict', 'dtype': <class 'numpy.float64'>, 'encoding': 'utf-8', 'input': 'content', 'lowercase': True, 'max_df': 1.0, 'max_features': 20000, 'min_df': 1, 'ngram_range': (1, 2), 'norm': 'l2', 'preprocessor': None, 'smooth_idf': True, 'stop_words': 'english', 'strip_accents': None, 'sublinear_tf': False, 'token_pattern': '(?u)\\b\\w\\w+\\b', 'tokenizer': None, 'use_idf': True, 'vocabulary': None}
+F1 score (micro) on training set = 0.9997369805365597
+F1 score (micro) on validation set = 0.6703953712632594
+----------------------------------------------
 
-MultinomialNB
-F1 score (micro) on training set = 0.8831539559464568
-F1 score (micro) on validation set = 0.7031593565559542
-------------------------------
+7074d3f491ebe06e6a28ba76d6b17b9688ea5a5f8a94023e8b1314845e326b82
+MultinomialNB: 76040/5185
+Classifier params: {'alpha': 1.0, 'class_prior': None, 'fit_prior': True}
+Tfidf params: {'analyzer': 'word', 'binary': False, 'decode_error': 'strict', 'dtype': <class 'numpy.float64'>, 'encoding': 'utf-8', 'input': 'content', 'lowercase': True, 'max_df': 0.9, 'max_features': 20000, 'min_df': 1, 'ngram_range': (1, 2), 'norm': 'l2', 'preprocessor': None, 'smooth_idf': True, 'stop_words': None, 'strip_accents': None, 'sublinear_tf': False, 'token_pattern': '(?u)\\b\\w\\w+\\b', 'tokenizer': None, 'use_idf': True, 'vocabulary': None}
+F1 score (micro) on training set = 0.7995134139926354
+F1 score (micro) on validation set = 0.6148505303760848
+----------------------------------------------
+
+e7812760309f1305439200fadef3338faf3b7cdfdbb229623602efb3385b524f
+MultinomialNB: 76040/5185
+Classifier params: {'alpha': 1.0, 'class_prior': None, 'fit_prior': True}F1 score (micro) on training set = 0.8488295633876907
+Tfidf params: {'analyzer': 'word', 'binary': False, 'decode_error': 'strict', 'dtype': <class 'numpy.float64'>, 'encoding': 'utf-8', 'input': 'content', 'lowercase': True, 'max_df': 0.98, 'max_features': 20000, 'min_df': 1, 'ngram_range': (1, 2), 'norm': 'l2', 'preprocessor': None, 'smooth_idf': True, 'stop_words': None, 'strip_accents': None, 'sublinear_tf': False, 'token_pattern': '(?u)\\b\\w\\w+\\b', 'tokenizer': None, 'use_idf': True, 'vocabulary': None}
+F1 score (micro) on training set = 0.7995134139926354
+F1 score (micro) on validation set = 0.6148505303760848
+----------------------------------------------
+
+1140da5aee2aa312e6c0103f6d0b028e90c8e1ecce7daab0e8ab6b0a430e20f1
+MultinomialNB: 76040/5185
+Classifier params: {'alpha': 0.5, 'class_prior': None, 'fit_prior': True}
+Tfidf params: {'analyzer': 'word', 'binary': False, 'decode_error': 'strict', 'dtype': <class 'numpy.float64'>, 'encoding': 'utf-8', 'input': 'content', 'lowercase': True, 'max_df': 1.0, 'max_features': 20000, 'min_df': 1, 'ngram_range': (1, 2), 'norm': 'l2', 'preprocessor': None, 'smooth_idf': True, 'stop_words': 'english', 'strip_accents': None, 'sublinear_tf': False, 'token_pattern': '(?u)\\b\\w\\w+\\b', 'tokenizer': None, 'use_idf': True, 'vocabulary': None}
+F1 score (micro) on training set = 0.8488295633876907
+F1 score (micro) on validation set = 0.6879459980713597
+----------------------------------------------
+
+bc6bc1d880731cdf11b4c368515b1d4a663e9a7d81b1d747471da99d5f86001d
+MultinomialNB: 76040/5185
+Classifier params: {'alpha': 0.4, 'class_prior': None, 'fit_prior': True}
+Tfidf params: {'analyzer': 'word', 'binary': False, 'decode_error': 'strict', 'dtype': <class 'numpy.float64'>, 'encoding': 'utf-8', 'input': 'content', 'lowercase': True, 'max_df': 1.0, 'max_features': 20000, 'min_df': 1, 'ngram_range': (1, 2), 'norm': 'l2', 'preprocessor': None, 'smooth_idf': True, 'stop_words': 'english', 'strip_accents': None, 'sublinear_tf': False, 'token_pattern': '(?u)\\b\\w\\w+\\b', 'tokenizer': None, 'use_idf': True, 'vocabulary': None}
+F1 score (micro) on training set = 0.85887690689111
+F1 score (micro) on validation set = 0.6906460945033751
+----------------------------------------------
+
+d5d25d506e60e091d4c27c3fc1966c82ffbb7590cf9d916c5e7ba12089d1993e
+MultinomialNB: 76040/5185
+Classifier params: {'alpha': 0.01, 'class_prior': None, 'fit_prior': True}
+Tfidf params: {'analyzer': 'word', 'binary': False, 'decode_error': 'strict', 'dtype': <class 'numpy.float64'>, 'encoding': 'utf-8', 'input': 'content', 'lowercase': True, 'max_df': 1.0, 'max_features': 20000, 'min_df': 1, 'ngram_range': (1, 2), 'norm': 'l2', 'preprocessor': None, 'smooth_idf': True, 'stop_words': 'english', 'strip_accents': None, 'sublinear_tf': False, 'token_pattern': '(?u)\\b\\w\\w+\\b', 'tokenizer': None, 'use_idf': True, 'vocabulary': None}
+F1 score (micro) on training set = 0.954497632824829
+F1 score (micro) on validation set = 0.6684667309546769
+----------------------------------------------
+
+b089089271d9f3a86447ebf266e21402028f49d774fa23de5e2b7b964a3f7085
+MultinomialNB: 76040/5185
+Classifier params: {'alpha': 0.3, 'class_prior': None, 'fit_prior': True}
+Tfidf params: {'analyzer': 'word', 'binary': False, 'decode_error': 'strict', 'dtype': <class 'numpy.float64'>, 'encoding': 'utf-8', 'input': 'content', 'lowercase': True, 'max_df': 1.0, 'max_features': 20000, 'min_df': 1, 'ngram_range': (1, 2), 'norm': 'l2', 'preprocessor': None, 'smooth_idf': True, 'stop_words': 'english', 'strip_accents': None, 'sublinear_tf': False, 'token_pattern': '(?u)\\b\\w\\w+\\b', 'tokenizer': None, 'use_idf': True, 'vocabulary': None}
+F1 score (micro) on training set = 0.8715807469752762
+F1 score (micro) on validation set = 0.6879459980713597
+----------------------------------------------
 
