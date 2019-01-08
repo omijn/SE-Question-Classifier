@@ -3,8 +3,10 @@ import random
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
+from tensorflow.python.keras.preprocessing import text, sequence
+import re
 
-np.random.seed(0)
+# np.random.seed(0)
 
 
 class DataManager:
@@ -47,12 +49,22 @@ class DataManager:
         flat_y = self.flatten([label] * repeats for label, repeats in zip(encoded_labels, class_sizes))
         return titles_X, flat_y
 
+    def single_sample(self, X, y, tfidf, index):
+        print(np.array(sorted(tfidf.inverse_transform(tfidf.transform([X[index]]))[0])))
+        print(X[index])
+        print(label_encoder.inverse_transform([y[index]]))
+
 
 class Preprocessor:
-    def __init__(self):
+    def __init__(self, vectorizer_mode='tfidf'):
         self.le = LabelEncoder()
-        self.stopwords = ['the', 'a', 'in', 'of', 'that', 'which', 'what', 'or', 'and']
-        self.tfidf = TfidfVectorizer(stop_words='english', max_features=20000, ngram_range=(1, 2))
+        self.vectorizer_mode = vectorizer_mode
+
+        if vectorizer_mode == 'tfidf':
+            self.stopwords = ['the', 'a', 'in', 'of', 'that', 'which', 'what', 'or', 'and']
+            self.tfidf = TfidfVectorizer(stop_words='english', max_features=60000, ngram_range=(1, 3))
+        elif vectorizer_mode == 'embeddings':
+            self.tokenizer = text.Tokenizer(num_words=40000)
 
     def fit_labelencoder(self, text_labels):
         self.le.fit(text_labels)
@@ -63,12 +75,31 @@ class Preprocessor:
     def decode_labels(self, numeric_labels):
         return self.le.inverse_transform(numeric_labels)
 
+    def clean(self, data, remove_http_urls=True):
+        if remove_http_urls:
+            url_pattern = re.compile(r'(?:https?://)(?:\w+\.)+(?:com|org|gov|edu|uk|net|us|co|info|ly).*?(?=\s)', flags=re.IGNORECASE)
+            for i in range(len(data)):
+                data[i] = url_pattern.sub("", data[i])
+        return data
+
+    def vectorize_fit_text(self, textdata):
+        if self.vectorizer_mode == 'tfidf':
+            self.tfidf.fit(textdata)
+        elif self.vectorizer_mode == 'embeddings':
+            self.tokenizer.fit_on_texts(textdata)
+
     def vectorize_fit_transform_text(self, textdata):
-        return self.tfidf.fit_transform(textdata)
+        self.vectorize_fit_text(textdata)
+        return self.vectorize_transform_text(textdata)
 
     def vectorize_transform_text(self, textdata):
-        return self.tfidf.transform(textdata)
+        if self.vectorizer_mode == 'tfidf':
+            return self.tfidf.transform(textdata)
+        elif self.vectorizer_mode == 'embeddings':
+            return self.tokenizer.texts_to_sequences(textdata)
 
     # def save(self):
     #     np.save('labelencoder_classes.npy', self.le.classes_)
     #     pickle.dump(self.tfidf, open("tfidf.sav", "wb"))
+
+label_encoder = LabelEncoder()

@@ -1,5 +1,8 @@
 """ Train a classifer on the question data obtained from scrape.py """
 
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 import json
 import numpy as np
 from sklearn.naive_bayes import MultinomialNB
@@ -10,8 +13,18 @@ from sklearn.externals import joblib
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 
-from preprocess import DataManager, Preprocessor
+from preprocess import DataManager, Preprocessor, label_encoder
 import hashlib
+
+from logger import record_attempt
+import tensorflow as tf
+from tensorflow.python.keras.layers import Dense, CuDNNLSTM, CuDNNGRU, LSTM, GRU, Dropout, SimpleRNN, Embedding, Input, Activation
+from tensorflow.python.keras.utils import to_categorical
+from tensorflow.python.keras.preprocessing import sequence
+from tensorflow.python.keras.optimizers import RMSprop, Adam, Adagrad, SGD
+
+from sklearn.utils import shuffle
+
 
 def baseline(distinct_labels, pp, X, y):
     # create a vocabulary for each label
@@ -30,9 +43,181 @@ def baseline(distinct_labels, pp, X, y):
     print("Baseline classifier F1 score over entire dataset = {}".format(f1_score(y, y_pred, average='micro')))
 
 
+# read data
+def read_data(type='train'):
+    data = {
+        'X': [],
+        'y': []
+    }
+
+    for category in ['pos', 'neg']:
+        train_path = os.path.join('..', 'text_classification', 'aclImdb', type, category)
+        review_files = os.listdir(train_path)
+        for file in sorted(review_files):
+            with open(os.path.join(train_path, file)) as f:
+                data['X'].append(f.read())
+        if category == 'pos':
+            data['y'].extend([1] * len(review_files))
+        else:
+            data['y'].extend([0] * len(review_files))
+
+    return shuffle(data['X'], data['y'])
+
+
+def ngram_model(Xtrain, ytrain, Xval, yval):
+    preprocessor = Preprocessor(vectorizer_mode='tfidf')
+
+    # Xtrain = preprocessor.clean(Xtrain)
+    # Xval = preprocessor.clean(Xval)
+
+    # apply tf-idf vectorization on the text
+    Xtrain = preprocessor.vectorize_fit_transform_text(Xtrain)
+    Xval = preprocessor.vectorize_transform_text(Xval)
+
+    clf = MultinomialNB()
+    clf.fit(Xtrain, ytrain)
+
+    ytrain_pred = clf.predict(Xtrain)
+    yval_pred = clf.predict(Xval)
+
+    train_f1 = f1_score(ytrain, ytrain_pred, average='micro')
+    val_f1 = f1_score(yval, yval_pred, average='micro')
+
+    print("Train F1 score: {}".format(train_f1))
+    print("Validation F1 score: {}".format(val_f1))
+
+    record_attempt(
+        classifier=clf,
+        tokenizer=preprocessor.tfidf,
+        train_size=len(ytrain),
+        val_size=len(yval),
+        metrics={
+            'train': {
+                'name': 'f1 (micro)',
+                'value': train_f1
+            },
+            'val': {
+                'name': 'f1 (micro)',
+                'value': val_f1
+            }
+        }
+    )
+
+    return clf, preprocessor
+
+
+def neural_ngram_model(Xtrain, ytrain, Xval, yval):
+    preprocessor = Preprocessor(vectorizer_mode='tfidf')
+
+    preprocessor.vectorize_fit_text(Xtrain)
+    Xtrain = preprocessor.vectorize_transform_text(Xtrain)
+    Xval = preprocessor.vectorize_transform_text(Xval)
+
+    num_classes = len(label_encoder.classes_)
+
+    ytrain = to_categorical(ytrain, num_classes)
+    yval = to_categorical(yval, num_classes)
+
+    model = tf.keras.Sequential()
+    model.add(Dense(300, activation='tanh', input_dim=Xtrain.shape[1]))
+    model.add(Dropout(0.5))
+    model.add(Dense(100, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes, activation='softmax'))
+
+    model.compile(optimizer=Adam(lr=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+
+    model.fit(Xtrain, ytrain, epochs=3, batch_size=32, validation_data=(Xval, yval))
+
+    train_score = model.evaluate(Xtrain, ytrain)[1]
+    val_score = model.evaluate(Xval, yval)[1]
+
+    record_attempt(
+        classifier=model,
+        tokenizer=preprocessor.tfidf,
+        train_size=len(ytrain),
+        val_size=len(yval),
+        metrics={'train': {'name': 'accuracy', 'value': train_score}, 'val': {'name': 'accuracy', 'value': val_score}}
+    )
+
+    return model, preprocessor
+
+
+def sequence_model(Xtrain, ytrain, Xval, yval):
+    preprocessor = Preprocessor(vectorizer_mode='embeddings')
+
+    Xtrain = preprocessor.vectorize_fit_transform_text(Xtrain)
+    Xval = preprocessor.vectorize_transform_text(Xval)
+
+    num_classes = len(label_encoder.classes_)
+
+    ytrain = to_categorical(ytrain, num_classes=num_classes)
+    yval = to_categorical(yval, num_classes=num_classes)
+
+    POST_LENGTH_LIMIT = 1500
+    max_post_len = len(max(Xtrain, key=len))
+    if max_post_len > POST_LENGTH_LIMIT:
+        max_post_len = POST_LENGTH_LIMIT
+
+    Xtrain = sequence.pad_sequences(Xtrain, max_post_len)
+    Xval = sequence.pad_sequences(Xval, max_post_len)
+
+    vocab_len = len(preprocessor.tokenizer.word_index.keys())
+
+    # input = Input(shape=(max_post_len,))
+    # embeddings = Embedding(input_dim=vocab_len + 1, output_dim=50, input_length=max_post_len)(input)
+    # X = LSTM(128, return_sequences=True)(embeddings)
+    # X = Dropout(0.5)(X)
+    # X = LSTM(128, return_sequences=False)(embeddings)
+    # X = Dropout(0.5)(X)
+    # X = Dense(num_classes)(X)
+    # X = Activation('softmax')(X)
+    #
+    # model = tf.keras.models.Model(inputs=input, outputs=X)
+
+    checkpoint_path = "training_checkpoints/cp.ckpt"
+    checkpoint_dir = os.path.dirname(checkpoint_path)
+
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, verbose=1)
+
+    model = tf.keras.Sequential()
+    model.add(Embedding(
+        input_dim=vocab_len + 1,
+        output_dim=300,
+        input_length=max_post_len
+    ))
+    model.add(LSTM(128, return_sequences=True))
+    model.add(Dropout(0.25))
+    model.add(LSTM(128, return_sequences=False))
+    model.add(Dropout(0.25))
+    model.add(Dense(num_classes, activation='softmax'))
+
+    model.compile(optimizer=RMSprop(lr=0.005), loss='categorical_crossentropy', metrics=['accuracy'])
+
+    model.fit(Xtrain, ytrain, batch_size=16, epochs=50, validation_data=(Xval, yval), callbacks=[cp_callback])
+
+    train_score = model.evaluate(Xtrain, ytrain)[1]
+    val_score = model.evaluate(Xval, yval)[1]
+
+    print("Train accuracy: {}".format(train_score))
+    print("Validation accuracy: {}".format(val_score))
+
+    record_attempt(
+        classifier=model,
+        tokenizer=preprocessor.tokenizer,
+        train_size=len(ytrain),
+        val_size=len(yval),
+        metrics={'train': {'name': 'accuracy', 'value': train_score}, 'val': {'name': 'accuracy', 'value': val_score}}
+    )
+
+    model.save(filepath='neural_seq_model.h5')
+    joblib.dump(preprocessor, 'seq_preprocessor.sav')
+    joblib.dump(label_encoder.classes_, 'label_encoder.sav')
+    return model, preprocessor
+
+
 def main():
     dm = DataManager(category_size=500, num_files=5)
-    pp = Preprocessor()
     data = dm.read_data()
 
     # get sites in the form [<list of sites from qdata1.json>, <list of sites from qdata2.json>, ...]
@@ -42,10 +227,10 @@ def main():
     flat_labels = dm.flatten(selected_sites)
 
     # create mapping from string labels (site names) to numeric labels
-    pp.fit_labelencoder(flat_labels)
+    label_encoder.fit(flat_labels)
 
     # transform string labels into numeric labels using the mapping just created
-    encoded_labels = pp.encode_labels(flat_labels)
+    encoded_labels = label_encoder.transform(flat_labels)
 
     # for each site, get "dm.category_size" number of questions
     sample = dm.get_sample(data, selected_sites)
@@ -56,71 +241,18 @@ def main():
     # Google says find the samples/word ratio to determine which model to use
     # https://developers.google.com/machine-learning/guides/text-classification/step-2-5
     # print("S/W ratio = " + str(np.median([len(question.split()) for question in X])))
+    # Xtrain, ytrain = read_data('train')
+    # Xtest, ytest = read_data('test')
+    # Xtrain, Xval, ytrain, yval = train_test_split(Xtrain, ytrain, train_size=0.8)
 
-    # the data is now ready for use
-    ### INSERT MACHINE LEARNING HERE
+    Xtrain, Xtest, ytrain, ytest = train_test_split(X, y, train_size=0.88)
+    Xtest, Xval, ytest, yval = train_test_split(Xtest, ytest, train_size=0.5)
 
-    # apply tf-idf vectorization on the text
-    X = pp.vectorize_fit_transform_text(X)
+    model, preprocessor = sequence_model(Xtrain, ytrain, Xval, yval)
+    pass
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.88)
-    X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, train_size=0.5)
-
-    clf = MultinomialNB(alpha=0.4)
-    clf = SVC(gamma='auto')
-    clf = GridSearchCV(clf, {
-        'kernel': ['rbf', 'poly'],
-        'C': [0.01, 0.1, 1, 10, 100]
-    })
-
-    # clf = MLPClassifier()
-    clf.fit(X_train, y_train)
-
-    y_pred_train = clf.predict(X_train)
-    y_pred_val = clf.predict(X_val)
-
-    classifier_name = clf.__class__.__name__
-    classifier_params = "Classifier params: " + str(clf.get_params())
-    tfidf_params = "Tfidf params: " + str(pp.tfidf.get_params())
-    train_size = str(len(y_train))
-    val_size = str(len(y_val))
-
-    attempt_id = hashlib.sha256(bytes(classifier_name + classifier_params + tfidf_params + train_size, encoding='utf-8')).hexdigest()
-
-    # len(y_test)
-    f1_train = f1_score(y_train, y_pred_train, average='micro')
-    f1_val = f1_score(y_val, y_pred_val, average='micro')
-    # acc_train = accuracy_score(y_train, y_pred_train)
-    # acc_val = accuracy_score(y_val, y_pred_val)
-
-    f1_train_msg = "F1 score (micro) on training set = {}".format(f1_train)
-    f1_val_msg = "F1 score (micro) on validation set = {}".format(f1_val)
-    # acc_train_msg = "Accuracy on training set = {}".format(acc_train)
-    # acc_val_msg = "Accuracy on validation set = {}".format(acc_val)
-
-    print(f1_train_msg)
-    print(f1_val_msg)
-    print(clf.cv_results_)
-    print(clf.best_params_)
-    # print(acc_train_msg)
-    # print(acc_val_msg)
-
-    with open("train_results", "a") as f:
-        f.write(attempt_id + "\n")
-        f.write(classifier_name + ": " + train_size + "/" + val_size + "\n")
-        f.write(classifier_params + "\n")
-        f.write(tfidf_params + "\n")
-        f.write(f1_train_msg + "\n")
-        f.write(f1_val_msg + "\n")
-        # f.write(acc_train_msg + "\n")
-        # f.write(acc_val_msg + "\n")
-        f.write("----------------------------------------------\n\n")
-
-    joblib.dump(clf, "classifier." + attempt_id + ".sav")
-    joblib.dump(pp, "preprocessor." + attempt_id + ".sav")
-
-    # print("Validation set result")
-    # print(classification_report(y_val, y_pred_val, target_names=dm.flatten(selected_sites)))
+    # joblib.dump(clf, "classifier." + attempt_id + ".sav")
+    # joblib.dump(preprocessor, "preprocessor." + attempt_id + ".sav")
 
 
 if __name__ == '__main__':

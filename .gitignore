@@ -6,4 +6,4 @@ command
 __pycache__/
 preprocessor.*.sav
 classifier.*.sav
-
+training_checkpoints
