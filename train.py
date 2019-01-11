@@ -206,8 +206,7 @@ def sequence_model(Xtrain, ytrain, Xval, yval):
     checkpoint_path = "{}/cp.ckpt".format(model_name)
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, save_best_only=True, verbose=1)
     earlystopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=2)
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tensorboard_logdir, histogram_freq=3, write_graph=False,
-                                                          write_grads=False, write_images=False)
+    # tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tensorboard_logdir, histogram_freq=3, write_graph=False, write_grads=False, write_images=False)
 
 
     model = tf.keras.Sequential()
@@ -217,9 +216,9 @@ def sequence_model(Xtrain, ytrain, Xval, yval):
     model.add(LSTM(256, return_sequences=False))
     model.add(Dropout(0.5))
     model.add(Dense(num_classes, activation='softmax'))
-    model.compile(optimizer=RMSprop(lr=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer=RMSprop(lr=0.003), loss='categorical_crossentropy', metrics=['accuracy'])
 
-    model.fit(Xtrain, ytrain, batch_size=16, epochs=50, validation_data=(Xval, yval), callbacks=[checkpoint_callback, earlystopping_callback, tensorboard_callback])
+    model.fit(Xtrain, ytrain, batch_size=16, epochs=50, validation_data=(Xval, yval), callbacks=[checkpoint_callback, earlystopping_callback])
 
     train_acc = model.evaluate(Xtrain, ytrain)[1]
     val_acc = model.evaluate(Xval, yval)[1]
@@ -301,26 +300,16 @@ def sepCNN(Xtrain, ytrain, Xval, yval):
 
 
 def main():
-    dm = DataManager(category_size=450, num_files=5)
-    data = dm.read_data()
-
-    # get sites in the form [<list of sites from qdata1.json>, <list of sites from qdata2.json>, ...]
-    selected_sites = dm.get_all_keys(data)
-
-    # from list of lists, create a flat list of the form: ["site1", "site2", "site3", ...]
-    flat_labels = dm.flatten(selected_sites)
+    dm = DataManager()
+    dm.read_data_from_files(num_files=5, excluded_sites=['meta.superuser', 'meta.serverfault', 'pt.stackoverflow', 'ja.stackoverflow', 'ru.stackoverflow', 'es.stackoverflow'])
 
     # create mapping from string labels (site names) to numeric labels
-    label_encoder.fit(flat_labels)
-
-    # transform string labels into numeric labels using the mapping just created
-    encoded_labels = label_encoder.transform(flat_labels)
-
-    # for each site, get "dm.category_size" number of questions
-    sample = dm.get_sample(data, selected_sites)
+    label_encoder.fit(dm.get_distinct_labels())
 
     # create dataset
-    X, y = dm.create_dataset(sample, encoded_labels)
+    X, y = dm.get_xy(questions_per_site=500)
+
+    y = label_encoder.transform(y)
 
     global num_classes
     num_classes = len(label_encoder.classes_)
@@ -329,10 +318,10 @@ def main():
     # https://developers.google.com/machine-learning/guides/text-classification/step-2-5
     # print("S/W ratio = " + str(np.median([len(question.split()) for question in X])))
 
-    Xtrain, Xtest, ytrain, ytest = train_test_split(X, y, train_size=0.88)
-    Xtest, Xval, ytest, yval = train_test_split(Xtest, ytest, train_size=0.5)
+    Xtrain, Xtest, Xval, ytrain, ytest, yval = dm.train_test_val_split(X, y, train_size=0.88, test_size=0.06, val_size=0.06)
 
-    model, model_name, preprocessor, ytrain_pred, yval_pred, metric_name, train_score, val_score = sequence_model(Xtrain,
+
+    model, model_name, preprocessor, ytrain_pred, yval_pred, metric_name, train_score, val_score = neural_ngram_model(Xtrain,
                                                                                                                ytrain,
                                                                                                                Xval,
                                                                                                                yval)
