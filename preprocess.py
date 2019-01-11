@@ -1,13 +1,14 @@
 import json
 import random
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.preprocessing import LabelEncoder
+import tensorflow as tf
 from tensorflow.python.keras.preprocessing import text, sequence
 import re
+from nltk.stem import SnowballStemmer
 
-# np.random.seed(0)
-
+np.random.seed(10)
 
 class DataManager:
 
@@ -54,17 +55,21 @@ class DataManager:
         print(X[index])
         print(label_encoder.inverse_transform([y[index]]))
 
+TFIDF_MODE = 0
+EMBEDDING_MODE = 1
 
 class Preprocessor:
-    def __init__(self, vectorizer_mode='tfidf'):
+    def __init__(self, vectorizer_mode=TFIDF_MODE, max_features=45000, verbose=False):
         self.le = LabelEncoder()
+        self.stemmer = SnowballStemmer("english")
         self.vectorizer_mode = vectorizer_mode
-
-        if vectorizer_mode == 'tfidf':
-            self.stopwords = ['the', 'a', 'in', 'of', 'that', 'which', 'what', 'or', 'and']
-            self.tfidf = TfidfVectorizer(stop_words='english', max_features=60000, ngram_range=(1, 3))
-        elif vectorizer_mode == 'embeddings':
-            self.tokenizer = text.Tokenizer(num_words=40000)
+        self.max_features = max_features
+        self.verbose = verbose
+        if vectorizer_mode == TFIDF_MODE:
+            # self.stopwords = ['the', 'a', 'in', 'of', 'that', 'which', 'what', 'or', 'and']
+            self.tfidf = TfidfVectorizer(stop_words='english', max_features=self.max_features, ngram_range=(1, 2))
+        elif vectorizer_mode == EMBEDDING_MODE:
+            self.tokenizer = text.Tokenizer(num_words=self.max_features)
 
     def fit_labelencoder(self, text_labels):
         self.le.fit(text_labels)
@@ -82,10 +87,18 @@ class Preprocessor:
                 data[i] = url_pattern.sub("", data[i])
         return data
 
+    def stem(self, textdata):
+        self.verbose and print("Stemming {} texts.".format(len(textdata)))
+        for i in range(len(textdata)):
+            textdata[i] = self.stemmer.stem(textdata[i])
+        return textdata
+
     def vectorize_fit_text(self, textdata):
-        if self.vectorizer_mode == 'tfidf':
+        if self.vectorizer_mode == TFIDF_MODE:
+            self.verbose and print("Fitting {} texts to Tfidfvectorizer".format(len(textdata)))
             self.tfidf.fit(textdata)
-        elif self.vectorizer_mode == 'embeddings':
+        elif self.vectorizer_mode == EMBEDDING_MODE:
+            self.verbose and print("Fitting {} texts to Tokenizer".format(len(textdata)))
             self.tokenizer.fit_on_texts(textdata)
 
     def vectorize_fit_transform_text(self, textdata):
@@ -93,11 +106,18 @@ class Preprocessor:
         return self.vectorize_transform_text(textdata)
 
     def vectorize_transform_text(self, textdata):
-        if self.vectorizer_mode == 'tfidf':
+        if self.vectorizer_mode == TFIDF_MODE:
+            self.verbose and print("Transforming {} texts to Tf-Idf vectors".format(len(textdata)))
             return self.tfidf.transform(textdata)
-        elif self.vectorizer_mode == 'embeddings':
+        elif self.vectorizer_mode == EMBEDDING_MODE:
+            self.verbose and print("Transforming {} texts to sequences".format(len(textdata)))
             return self.tokenizer.texts_to_sequences(textdata)
 
+    def get_tokenizer(self):
+        if self.vectorizer_mode == TFIDF_MODE:
+            return self.tfidf
+        elif self.vectorizer_mode == EMBEDDING_MODE:
+            return self.tokenizer
     # def save(self):
     #     np.save('labelencoder_classes.npy', self.le.classes_)
     #     pickle.dump(self.tfidf, open("tfidf.sav", "wb"))
