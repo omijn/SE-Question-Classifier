@@ -8,8 +8,8 @@ import tensorflow as tf
 from tensorflow.python.keras.preprocessing import text, sequence
 import re
 from nltk.stem import SnowballStemmer
-
-np.random.seed(10)
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
 
 
 class DataManager:
@@ -20,7 +20,8 @@ class DataManager:
 
     def read_data_from_files(self, num_files=6, excluded_sites=[]):
         file_handles = [open("qdata" + str(f) + ".json") for f in range(1, num_files + 1)]
-        self.data = {site: data for f in file_handles for site, data in (json.load(f)).items() if site not in excluded_sites}
+        self.data = {site: data for f in file_handles for site, data in (json.load(f)).items() if
+                     site not in excluded_sites}
         self.labels = list(self.data.keys())
 
     def get_distinct_labels(self):
@@ -29,6 +30,7 @@ class DataManager:
     def get_xy(self, questions_per_site=1000):
         X = []
         y = []
+        np.random.seed(42)
         for site, qdata_list in self.data.items():
             randomly_sampled_qdata_list = np.random.permutation(qdata_list)[:questions_per_site]
             num_qdata = len(randomly_sampled_qdata_list)
@@ -45,26 +47,39 @@ class DataManager:
         Xtest, Xval, ytest, yval = train_test_split(Xtest, ytest, train_size=test_prop)
         return Xtrain, Xtest, Xval, ytrain, ytest, yval
 
-    def single_sample(self, X, y, tfidf, index):
-        print(np.array(sorted(tfidf.inverse_transform(tfidf.transform([X[index]]))[0])))
-        print(X[index])
-        print(label_encoder.inverse_transform([y[index]]))
-
 
 TFIDF_MODE = 0
 EMBEDDING_MODE = 1
 
+token_pattern = r'(?u)\b\w+\b'
+digit_pattern = r'\d+'
+url_pattern = r'(?:https?://)(?:\w+\.)+(?:com|org|gov|edu|uk|net|us|co|info|ly).*?(?=\s)'
+compiled_token_pattern = re.compile(token_pattern)
+compiled_digit_pattern = re.compile(digit_pattern)
+compiled_url_pattern = re.compile(url_pattern, flags=re.IGNORECASE)
+lemmatizer = WordNetLemmatizer()
+
+
+def custom_tokenizer(document):
+    document = compiled_digit_pattern.sub('application_metatoken_number', document)
+    document = compiled_url_pattern.sub('application_metatoken_url', document)
+    words = compiled_token_pattern.findall(document)
+    return [lemmatizer.lemmatize(word) for word in words]
+
 
 class Preprocessor:
-    def __init__(self, vectorizer_mode=TFIDF_MODE, max_features=45000, verbose=False):
+    def __init__(self, vectorizer_mode=TFIDF_MODE, max_features=60000, verbose=False):
         self.le = LabelEncoder()
         self.stemmer = SnowballStemmer("english")
         self.vectorizer_mode = vectorizer_mode
         self.max_features = max_features
         self.verbose = verbose
+
         if vectorizer_mode == TFIDF_MODE:
-            # self.stopwords = ['the', 'a', 'in', 'of', 'that', 'which', 'what', 'or', 'and']
-            self.tfidf = TfidfVectorizer(stop_words='english', max_features=self.max_features, ngram_range=(1, 2))
+
+            self.tfidf = TfidfVectorizer(stop_words=stopwords.words('english'), max_features=self.max_features,
+                                         ngram_range=(1, 2), token_pattern=token_pattern, tokenizer=custom_tokenizer)
+
         elif vectorizer_mode == EMBEDDING_MODE:
             self.tokenizer = text.Tokenizer(num_words=self.max_features)
 

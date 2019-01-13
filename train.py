@@ -24,6 +24,7 @@ DEBUG = 0
 num_classes = 0
 TENSORBOARD_LOGDIR = "tensorboard_logdir"
 
+
 def error_analysis(yval, yval_pred, Xval, Xval_original, preprocessor):
     original_words = Xval_original
     selected_words = preprocessor.tfidf.inverse_transform(Xval)
@@ -43,7 +44,7 @@ def error_analysis(yval, yval_pred, Xval, Xval_original, preprocessor):
 
 def ngram_model(Xtrain, ytrain, Xval, yval):
     model_name = "mnb_ngram"
-    preprocessor = Preprocessor(vectorizer_mode=TFIDF_MODE, max_features=45000, verbose=True)
+    preprocessor = Preprocessor(vectorizer_mode=TFIDF_MODE, verbose=True)
 
     # apply tf-idf vectorization on the text
     Xtrain = preprocessor.vectorize_fit_transform_text(Xtrain)
@@ -81,7 +82,7 @@ def neural_ngram_model(Xtrain, ytrain, Xval, yval):
     os.makedirs(model_name, exist_ok=True)
     tensorboard_logdir = os.path.join(model_name, TENSORBOARD_LOGDIR)
     os.makedirs(tensorboard_logdir, exist_ok=True)
-    preprocessor = Preprocessor(vectorizer_mode=TFIDF_MODE)
+    preprocessor = Preprocessor(vectorizer_mode=TFIDF_MODE, max_features=60000)
 
     # apply tf-idf vectorization on the text
     Xtrain = preprocessor.vectorize_fit_transform_text(Xtrain)
@@ -94,19 +95,17 @@ def neural_ngram_model(Xtrain, ytrain, Xval, yval):
     checkpoint_path = "{}/cp.ckpt".format(model_name)
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, save_best_only=True, verbose=1)
     earlystopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=2)
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tensorboard_logdir, write_graph=False, histogram_freq=1, write_grads=True, batch_size=64)
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tensorboard_logdir, write_graph=False, histogram_freq=3, write_grads=True, batch_size=64)
 
     model = tf.keras.Sequential()
-    model.add(Dense(500, input_dim=Xtrain.shape[1]))
+    model.add(Dense(1250, input_dim=Xtrain.shape[1]))
     model.add(LeakyReLU())
     model.add(Dropout(0.5))
-    # model.add(Dense(1000, activation='relu'))
-    # model.add(Dropout(0.5))
     model.add(Dense(num_classes, activation='softmax'))
 
     model.compile(optimizer=Adam(lr=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
 
-    model.fit(Xtrain, ytrain, epochs=5, batch_size=8, validation_data=(Xval, yval), callbacks=[checkpoint_callback, earlystopping_callback, tensorboard_callback])
+    model.fit(Xtrain, ytrain, epochs=10, batch_size=8, validation_data=(Xval, yval), callbacks=[checkpoint_callback, earlystopping_callback])
 
     train_acc = model.evaluate(Xtrain, ytrain)[1]
     val_acc = model.evaluate(Xval, yval)[1]
@@ -185,7 +184,10 @@ def sequence_model(Xtrain, ytrain, Xval, yval):
     tensorboard_logdir = os.path.join(model_name, TENSORBOARD_LOGDIR)
     os.makedirs(model_name, exist_ok=True)
     os.makedirs(tensorboard_logdir, exist_ok=True)
-    preprocessor = Preprocessor(vectorizer_mode=EMBEDDING_MODE)
+    preprocessor = Preprocessor(vectorizer_mode=EMBEDDING_MODE, max_features=60000)
+
+    Xtrain = preprocessor.stem(Xtrain)
+    Xval = preprocessor.stem(Xval)
 
     Xtrain = preprocessor.vectorize_fit_transform_text(Xtrain)
     Xval = preprocessor.vectorize_transform_text(Xval)
@@ -193,7 +195,7 @@ def sequence_model(Xtrain, ytrain, Xval, yval):
     ytrain = to_categorical(ytrain, num_classes=num_classes)
     yval = to_categorical(yval, num_classes=num_classes)
 
-    POST_LENGTH_LIMIT = 500
+    POST_LENGTH_LIMIT = 400
     max_post_len = len(max(Xtrain, key=len))
     if max_post_len > POST_LENGTH_LIMIT:
         max_post_len = POST_LENGTH_LIMIT
@@ -206,14 +208,12 @@ def sequence_model(Xtrain, ytrain, Xval, yval):
     checkpoint_path = "{}/cp.ckpt".format(model_name)
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, save_best_only=True, verbose=1)
     earlystopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=2)
-    # tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tensorboard_logdir, histogram_freq=3, write_graph=False, write_grads=False, write_images=False)
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tensorboard_logdir, histogram_freq=3, write_graph=False, write_grads=False, write_images=False)
 
 
     model = tf.keras.Sequential()
     model.add(embedding_layer)
-    model.add(LSTM(256, return_sequences=True))
-    model.add(Dropout(0.5))
-    model.add(LSTM(256, return_sequences=False))
+    model.add(CuDNNLSTM(256, return_sequences=False))
     model.add(Dropout(0.5))
     model.add(Dense(num_classes, activation='softmax'))
     model.compile(optimizer=RMSprop(lr=0.003), loss='categorical_crossentropy', metrics=['accuracy'])
@@ -232,15 +232,16 @@ def sequence_model(Xtrain, ytrain, Xval, yval):
 def sepCNN(Xtrain, ytrain, Xval, yval):
     preprocessor = Preprocessor(vectorizer_mode=EMBEDDING_MODE)
 
+    Xtrain = preprocessor.stem(Xtrain)
+    Xval = preprocessor.stem(Xval)
+
     Xtrain = preprocessor.vectorize_fit_transform_text(Xtrain)
     Xval = preprocessor.vectorize_transform_text(Xval)
-
-    num_classes = len(label_encoder.classes_)
 
     ytrain = to_categorical(ytrain, num_classes=num_classes)
     yval = to_categorical(yval, num_classes=num_classes)
 
-    POST_LENGTH_LIMIT = 1500
+    POST_LENGTH_LIMIT = 400
     max_post_len = len(max(Xtrain, key=len))
     if max_post_len > POST_LENGTH_LIMIT:
         max_post_len = POST_LENGTH_LIMIT
@@ -301,13 +302,13 @@ def sepCNN(Xtrain, ytrain, Xval, yval):
 
 def main():
     dm = DataManager()
-    dm.read_data_from_files(num_files=5, excluded_sites=['meta.superuser', 'meta.serverfault', 'pt.stackoverflow', 'ja.stackoverflow', 'ru.stackoverflow', 'es.stackoverflow'])
+    dm.read_data_from_files(num_files=5, excluded_sites=['meta.superuser', 'meta.serverfault', 'pt.stackoverflow', 'ja.stackoverflow', 'ru.stackoverflow', 'es.stackoverflow', 'rus', 'ukranian'])
 
     # create mapping from string labels (site names) to numeric labels
     label_encoder.fit(dm.get_distinct_labels())
 
     # create dataset
-    X, y = dm.get_xy(questions_per_site=500)
+    X, y = dm.get_xy(questions_per_site=1000)
 
     y = label_encoder.transform(y)
 
@@ -318,13 +319,13 @@ def main():
     # https://developers.google.com/machine-learning/guides/text-classification/step-2-5
     # print("S/W ratio = " + str(np.median([len(question.split()) for question in X])))
 
-    Xtrain, Xtest, Xval, ytrain, ytest, yval = dm.train_test_val_split(X, y, train_size=0.88, test_size=0.06, val_size=0.06)
+    Xtrain, Xtest, Xval, ytrain, ytest, yval = dm.train_test_val_split(X, y, train_size=0.9, test_size=0.06, val_size=0.06)
 
 
     model, model_name, preprocessor, ytrain_pred, yval_pred, metric_name, train_score, val_score = neural_ngram_model(Xtrain,
-                                                                                                               ytrain,
-                                                                                                               Xval,
-                                                                                                               yval)
+                                                                                                                  ytrain,
+                                                                                                                  Xval,
+                                                                                                                  yval)
 
     print("Train {} score: {}".format(metric_name, train_score))
     print("Validation {} score: {}".format(metric_name, val_score))
@@ -343,6 +344,8 @@ def main():
                    )
 
     # error_analysis(yval, yval_pred, Xval, Xval_original, preprocessor)
+    joblib.dump(preprocessor, "{}/preprocessor.sav".format(model_name))
+    joblib.dump(label_encoder.classes_, "{}/label_encoder_classes.sav".format(model_name))
 
     os.makedirs(model_name, exist_ok=True)
     if isinstance(model, tf.keras.Sequential):
@@ -350,8 +353,6 @@ def main():
     else:
         joblib.dump(model, "{}/model.sav".format(model_name))
 
-    joblib.dump(preprocessor, "{}/preprocessor.sav".format(model_name))
-    joblib.dump(label_encoder.classes_, "{}/label_encoder_classes.sav".format(model_name))
 
 
 if __name__ == '__main__':
