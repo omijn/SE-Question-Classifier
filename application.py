@@ -7,7 +7,7 @@ import json
 import tensorflow as tf
 import time
 
-app = Flask(__name__)
+application = Flask(__name__)
 
 tf.keras.backend.clear_session()
 default_model_name = "neural_ngram"
@@ -20,12 +20,12 @@ pc = PredictionClient(model, pp, le)
 site_metadata = json.load(open("sites.json"))['items']
 
 
-@app.route("/")
+@application.route("/")
 def index():
     return render_template("index.html")
 
 
-@app.route("/predict", methods=['POST', 'GET'])
+@application.route("/predict", methods=['POST', 'GET'])
 def predict():
     data = request.get_json()
     question = data['question']
@@ -54,3 +54,7 @@ def predict():
             }
         )
     return jsonify(return_obj)
+
+
+if __name__ == '__main__':
+    application.run()
