@@ -6,39 +6,300 @@
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
           integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <link rel="stylesheet" href="static/cover.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css"
+          integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
     <link rel="stylesheet" href="static/index.css">
-
 
 </head>
 <body class="text-center">
 
-<div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
-    <header class="masthead mb-auto">
-        <h1>Stack Exchange Question Classifier</h1>
-    </header>
-
-    <main role="main" class="inner cover">
-        <h4 class="cover-heading">Ask a question or type in a few keywords.</h4><br>
-        <div class="input-group">
-            <textarea class="form-control" id="question-input" aria-label="With textarea"></textarea>
-            <div class="input-group-append">
-                <button class="btn btn-outline-secondary" type="button" id="predict-button">Predict!</button>
+<div class="section" id="classifier">
+    <div class="container">
+        <div class="toast p-2 bg-danger text-light text-left" role="alert"
+             aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <h4>
+                    <i class="fas fa-info-circle rounded mr-2"></i>
+                    <strong class="mr-auto">Note (press Esc to hide)</strong>
+                    <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close"
+                            onclick="hideNote()">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </h4>
+            </div>
+            <div class="toast-body lead">
+                This app is not affiliated with Stack Exchange. It doesn't guarantee correct predictions all the time,
+                so you shouldn't use it to determine where to post your questions (although it might be useful in
+                narrowing down the options). Before posting a question on a Stack Exchange site,
+                make sure you've read the site guidelines to determine whether your question is appropriate for that
+                site.
             </div>
         </div>
-        <br>
-        <p class="lead">Your question probably belongs on <span id="prediction"></span></p>
-        <img src="" class="img-fluid" id="prediction-logo">
-    </main>
+        <header>
+            <nav class="p-2 navbar navbar-expand-lg rounded navbar-light fixed">
+                <a class="navbar-brand"><h4>Stack Exchange Question Classifier</h4></a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+                        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="https://github.com/omijn/SE-Question-Classifier" target="_blank">View
+                                on GitHub <span class="sr-only">(current)</span></a>
+                        </li>
+                        <li class="nav-item"><a class="nav-link" data-title="Abhijit Kashyap" data-html="true"
+                                                data-toggle="popover" data-placement="bottom"
+                                                data-content="<a target='_blank' href='https://www.linkedin.com/in/abhijit-kashyap/'>LinkedIn</a>">Contact</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </header>
 
-    <footer class="mastfoot mt-auto">
-        <div class="inner">
-            <p>Cover template for <a href="https://getbootstrap.com/">Bootstrap</a>, by <a
-                    href="https://twitter.com/mdo">@mdo</a>.</p>
+        <div id="main">
+            <h4 class="cover-heading">Ask a question or type in a few keywords to see which Stack Exchange website your question belongs on. <a tabindex="0" role="button"
+                                                                                   data-toggle="popover"
+                                                                                   data-trigger="focus" title=""
+                                                                                   data-content="Long and descriptive questions tend to get classified better than shorter ones. Also, if the classifier doesn't understand your input, its predictions will probably be wildly off."><i
+                    class="fas fa-question-circle"></i></a>
+            </h4><br>
+            <div class="input-group">
+                <textarea class="form-control" placeholder="How do astronauts do their laundry in space?"
+                          id="question-input" aria-label="With textarea"></textarea>
+                <div class="input-group-append">
+                    <button class="btn btn-dark" type="button" id="predict-button">Predict!</button>
+                    <button id="top-n-button" class="btn btn-outline-primary dropdown-toggle" type="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Top three
+                    </button>
+                    <div class="dropdown-menu">
+                        <span class="dropdown-item">Best</span>
+                        <span class="dropdown-item">Top two</span>
+                        <span class="dropdown-item">Top three</span>
+                        <span class="dropdown-item">Top four</span>
+                        <span class="dropdown-item">Top five</span>
+                    </div>
+                </div>
+            </div>
+            <br>
+
+            <div class="row rounded" id="prediction-row"></div>
         </div>
-    </footer>
+        <div class="row scroll-prompt">
+            <div class="col-md">
+                <span class="text">Learn how this works</span><br>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+    </div>
 </div>
 
+<div class="section" id="explanation1">
+    <div class="container">
+        <div class="row">
+            <div class="col-md">
+                <h2 class="mt-5">Simple Explanation</h2>
+            </div>
+        </div>
+        <div class="row text-left">
+            <div class="col-md">
+                <div class="card-deck mt-5">
+                    <div class="card bg-info mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">What is text classification?</h5>
+                            <p class="card-text">Text classification is the task of assigning one or more categories to
+                                a
+                                piece of text based on its content.</p>
+                            <p class="card-text">
+                                This classifier uses machine learning to assign those categories.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card text-info mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">What is machine learning?</h5>
+                            <p class="card-text">Without getting too technical, machine learning is an umbrella term for
+                                approaches that look at a lot of data and try to discover a pattern (or a model) in
+                                it.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-deck mt-3">
+                    <div class="card bg-dark mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">This app can predict where a question belongs...</h5>
+                            <p class="card-text">This particular classifier looks at over 140,000 questions posted on
+                                the Stack
+                                Exchange network, and learns to identify which questions belong on which websites.</p>
+                        </div>
+                    </div>
+                    <div class="card text-dark mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">...but how does it know?</h5>
+                            <p class="card-text">It uses the frequency of important words occurring in a question to
+                                determine what category the question should be in.</p>
+                        </div>
+                    </div>
+                    <div class="card bg-primary mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">For example, </h5>
+                            <p class="card-text">it might observe that out of all the questions it saw, the ones that
+                                contained the words "air" and "wings" were usually found on the Aviation website. After
+                                it has learnt this relationship, if you type in "air" and "wings", it
+                                associates these words with the category "Aviation".</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row scroll-prompt">
+            <div class="col-md">
+                <span class="text">Detailed explanation</span><br>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section pb-5" id="explanation2">
+    <div class="container">
+        <div class="row">
+            <div class="col-md">
+                <h2 class="mt-5">Detailed Explanation</h2>
+            </div>
+        </div>
+        <div class="row text-left">
+            <div class="col-md">
+                <p class="lead">Text classification is usually done using one of two text models: Bag-of-words models
+                    and sequence models.</p>
+                <h3 class="text-left">Bag-of-Words Models</h3>
+                <p class="lead"></p>
+                <div class="card-deck mt-3">
+                    <div class="card bg-warning mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Explanation</h5>
+                            <p class="card-text">This classifier uses a bag-of-words model.</p>
+                            <p class="card-text">A bag-of-words model treats input text as an unordered set of words and
+                                n-grams. It doesn't consider the order in which words appear.</p>
+                            <p class="card-text">
+                                So, the sentences "The Lakers beat the Celtics" and "The Celtics beat the Lakers" would
+                                have the same representation in such a model (assuming the model only uses unigrams).
+                            </p>
+                            <p class="card-text">
+                                As you can probably tell, this representation isn't ideal for all applications. However,
+                                it's sufficient for this application, because we just need to pick out the words
+                                "Celtics", "Lakers" and maybe "beat" to understand that both sentences are about
+                                basketball. It doesn't matter which team actually won.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card bg-dark text-light mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Preprocessing</h5>
+                            <p class="card-text">We can't feed words directly into a machine learning algorithm, so we
+                                need to convert the texts into numbers.</p>
+                            <p class="card-text">
+                                For BoW models, it's typical to calculate the TF-IDF score for each word. Each text gets
+                                converted to a long vector, whose length is the number of words considered as important
+                                across all the questions (i.e. the vocabulary size).
+                            </p>
+                            <p class="card-text">For this classifier, I first lemmatized the nouns (to bring words like
+                                "books" and "book" to the same form), then
+                                used the 60,000 most frequent unigrams and bigrams in 146,000 texts, excluding
+                                stop-words like "the" and "and". Finally, I transformed these texts into TF-IDF vectors
+                                and fed them into machine learning algorithms.</p>
+
+                        </div>
+                    </div>
+                    <div class="card bg-secondary text-light mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Algorithms</h5>
+                            <p class="card-text">I mainly used two algorithms here, a multinomial Naive Bayes classifier
+                                and a neural network.</p>
+                            <p class="card-text">The Naive Bayes classifier trained quickly and had a validation
+                                accuracy of around 62%-71% (71% was the highest accuracy I achieved after tweaking
+                                hyperparameters of the classifier and TF-IDF vectorizer)</p>
+                            <p class="card-text">My initial neural network was complicated and had several layers, and
+                                whenever I trained it, it usually overfit to my training set spectacularly and performed
+                                no better than Naive Bayes. After reducing the complexity and giving the neural network
+                                a layer with a 1,200 Leaky ReLU neurons followed by a dropout layer and a softmax layer
+                                for prediction, I achieved an accuracy just shy of 76%.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-left mt-5">Sequence Models</h3>
+                <p class="lead"></p>
+                <div class="card-deck mt-3">
+                    <div class="card bg-secondary text-light mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Explanation</h5>
+                            <p class="card-text">A sequence model takes the order of words appearing in a text into
+                                consideration.</p>
+                            <p class="card-text">
+                                The sentences "The Lakers beat the Celtics" and "The Celtics beat the Lakers" would have
+                                different internal representations in a sequence model.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card bg-light text-dark mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Preprocessing</h5>
+                            <p class="card-text">When using a sequence model for text classification, we often represent
+                                words using word embeddings, which are dense, real number vector representations of
+                                words. Words that are semantically similar, like "cat" and "dog", will have similar
+                                embeddings. I used Google's pretrained Word2Vec embeddings to build my model.</p>
+                            <p class="card-text">First, I lemmatized the texts and tokenized them into unigrams using a
+                                vocabulary size of 55,000. Then, I converted the texts to sequences of word indices and
+                                truncated/padded them to 400 words.</p>
+                            <p class="card-text">Finally, I picked out the embeddings for those words using an embedding
+                                layer in a neural network.</p>
+                            <p class="card-text">As an example, the sentence "the cat chased the mouse", would get
+                                converted to a sequence of 400 Word2Vec embeddings (300-dimensional vectors), with the
+                                first 395 being placeholder embeddings, and the last five representing the five words in
+                                the sentence.</p>
+                        </div>
+                    </div>
+                    <div class="card bg-dark text-warning mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Algorithms</h5>
+                            <p class="card-text">I tried a few recurrent neural network architectures, all of which
+                                began with an embedding layer to pick out embeddings. What worked well was an LSTM layer
+                                with 128 hidden activation units followed by a dropout layer and a softmax layer for
+                                prediction. This achieved an accuracy of about 70%.</p>
+                            <p class="card-text">I also tried using a SepCNN, but it performed poorly.</p>
+                            <p class="card-text">An approach I thought might work well was a BoW model that combined
+                                TF-IDF scores with word embeddings. I performed a TF-IDF weighted averaged of the word
+                                embeddings in a text to get an average semantic representation of the text, then fed
+                                these text representations through a neural network. However, at 68%, this didn't work
+                                as well as the other models I built.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-deck mt-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Error Analysis</h5>
+                            <p class="card-text">To try to improve the classifier's performance, I examined the mistakes
+                                it was making. It was actually doing a pretty good job, and it was mostly the hard texts
+                                that even humans might have a hard time classifying that reduced its performance. There
+                                are several sites on Stack Exchange that have overlapping content, so sometimes it can
+                                be hard to make a decision. However, if I include the top two predictions, the accuracy
+                                jumps from 75% to 85%. The top three predictions contain the right answer 90%
+                                of
+                                the time. Four answers and five answers result in 92% and 94% accuracy
+                                respectively.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="static/pace.js"></script>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"
         integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
@@ -48,22 +309,43 @@
         integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
         crossorigin="anonymous"></script>
 
+<script src="static/scrollify.js"></script>
+<script>
+    $(function () {
+        $.scrollify({
+            section: ".section",
+        });
+    });
+
+    $(function () {
+        $('[data-toggle="popover"]').popover()
+    })
+</script>
+
+
 <script>
     var question_input = $("#question-input")
     question_input.focus()
 
     function predict() {
+        force_reset()
+        if (question_input.val() === "")
+            return
         let request = $.post({
             url: "/predict",
             data: JSON.stringify({
-                question: question_input.val()
+                question: question_input.val(),
+                top_n: $("#top-n-button").html().toLowerCase()
             }),
             contentType: "application/json"
         })
 
         request.done(function (data) {
-            $("#prediction").html(data.name)
-            $("#prediction-logo").attr("src", data.logo)
+            for (let item of data.predictions) {
+                let p = "<p class='lead'><span class='prediction'>" + item.name + "</span>"
+                let logo = "<a target='_blank' href='" + item.url + "'><img width=50 src='" + item.logo + "' class='img-fluid prediction-logo'></a>"
+                $("#prediction-row").append($("<div class='col-sm'></div>").append(p, logo))
+            }
         })
 
         question_input.focus()
@@ -71,24 +353,46 @@
 
     function reset() {
         if (question_input.val() === "") {
-            $("#prediction").html("")
-            $("#prediction-logo").attr("src", "")
+            $("#prediction-row").html("")
         }
     }
 
+    function force_reset() {
+        $("#prediction-row").html("")
+    }
+
     question_input.keypress(function (e) {
-        let key = e.which;
-        if (key === 13)  // the enter key code
-        {
-            $("#predict-button").click();
-            return false;
+        let key = e.which
+        if (key === 13) { // the enter key code
+            $("#predict-button").click()
+            return false
         }
     });
+
+    function hideNote() {
+        $('.toast').hide();
+        $.scrollify.update();
+    }
+
+    $(document).keyup(function (e) {
+        if (e.which === 27) {
+            hideNote()
+            $('[data-toggle="popover"]').popover('hide')
+        }
+    })
 
     $("#predict-button").click(predict)
     setInterval(reset, 1000)
 
-</script>
+    $(".dropdown-item").click(function () {
+        $("#top-n-button").html($(this).html())
+    })
 
+    $(".scroll-prompt").click(function () {
+        $.scrollify.next()
+    })
+
+
+</script>
 </body>
 </html>
