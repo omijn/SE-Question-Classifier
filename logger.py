@@ -5,20 +5,29 @@ import tensorflow as tf
 def record_attempt(classifier, tokenizer, train_size, val_size, metrics, logfile='train_results'):
     classifier_name = classifier.__class__.__name__
 
+    classifier_params = ""
     # keras model
     if isinstance(classifier, tf.keras.Sequential):
         config = classifier.get_config()
-        config['layers'][0]['config'].pop('batch_input_shape')
-        classifier_params = "Classifier params: " + str(config)
+        try:
+            config['layers'][0]['config'].pop('batch_input_shape')
+            classifier_params = "Classifier params: " + str(config)
+        except Exception as e:
+            pass
     # sklearn model
     else:
         classifier_params = "Classifier params: " + str(classifier.get_params())
 
+    tokenizer_params = ""
     # keras tokenizer
     if isinstance(tokenizer, tf.keras.preprocessing.text.Tokenizer):
-        config = tokenizer.get_config()
-        [config.pop(key) for key in ['index_docs', 'index_word', 'word_counts', 'word_docs', 'word_index']]
-        tokenizer_params = "Tfidf params: " + str(config)
+        try:
+            config = tokenizer.get_config()
+        except AttributeError as e:
+            pass
+        else:
+            [config.pop(key) for key in ['index_docs', 'index_word', 'word_counts', 'word_docs', 'word_index']]
+            tokenizer_params = "Tfidf params: " + str(config)
     # sklearn tokenizer
     else:
         tokenizer_params = "Tfidf params: " + str(tokenizer.get_params())
